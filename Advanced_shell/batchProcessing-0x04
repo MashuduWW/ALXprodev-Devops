@@ -4,45 +4,48 @@
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 base_url="https://pokeapi.co/api/v2/pokemon"
 error_log="errors.txt"
-timeout=10  # Max seconds allowed per fetch
 
-> "$error_log"  # Clear error log
+# Clear previous error log
+> "$error_log"
 
-# Function to fetch Pokémon data
+# Function to fetch data for one Pokémon with basic retry logic
 fetch_pokemon() {
-  name="$1"
-  status=$(curl -s -w "%{http_code}" -o "${name}.json" "${base_url}/${name}")
-  if [ "$status" -ne 200 ]; then
-    echo "[$(date)] Failed to fetch $name (status $status)" >> "$error_log"
+  name=$1
+  attempts=0
+  max_attempts=3
+  success=false
+
+  while [ $attempts -lt $max_attempts ]; do
+    ((attempts++))
+    
+    echo "[$name] Attempt $attempts..."
+
+    # Fetch data and store HTTP status code
+    status=$(curl -s -w "%{http_code}" -o "${name}.json" "${base_url}/${name}")
+    
+    if [ "$status" -eq 200 ]; then
+      echo "[$name] ✅ Success (attempt $attempts)"
+      success=true
+      break
+    else
+      echo "[$name] ❌ Failed (status $status)"
+      sleep 1  # Small delay before retry
+    fi
+  done
+
+  # Final check after retries
+  if [ "$success" = false ]; then
+    echo "[$(date)] Failed to fetch $name after $max_attempts attempts" >> "$error_log"
     rm -f "${name}.json"
   fi
 }
 
-# Launch background processes and store their PIDs
-declare -A pid_map
-
+# Launch each request in the background
 for name in "${pokemon_list[@]}"; do
-  echo "Fetching $name..."
   fetch_pokemon "$name" &
-  pid_map["$name"]=$!
 done
 
-# Monitor and handle long-running processes
-for name in "${!pid_map[@]}"; do
-  pid=${pid_map[$name]}
-  
-  # Wait with timeout
-  SECONDS=0
-  while kill -0 "$pid" 2>/dev/null; do
-    if [ "$SECONDS" -ge "$timeout" ]; then
-      echo "⛔ Timeout reached for $name (PID $pid). Killing..."
-      kill "$pid"
-      echo "[$(date)] Timeout: $name process killed (PID $pid)" >> "$error_log"
-      rm -f "${name}.json"
-      break
-    fi
-    sleep 1
-  done
-done
+# Wait for all background jobs to complete
+wait
 
-echo "✅ All fetches completed or terminated if stuck."
+echo "✅ All fetches complete."
