@@ -1,27 +1,44 @@
 #!/bin/bash
 
-# List of Pokémon to fetch
+# List of Pokémon
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
-
-# API base URL
 base_url="https://pokeapi.co/api/v2/pokemon"
+error_log="errors.txt"
+
+# Clear previous error log
+> "$error_log"
 
 # Loop through each Pokémon
-for name in "${pokemon_list[@]}"
-do
+for name in "${pokemon_list[@]}"; do
   echo "Fetching data for $name..."
+  attempts=0
+  max_attempts=3
+  success=false
 
-  # Make API request and save to file
-  curl -s "${base_url}/${name}" -o "${name}.json"
+  while [ $attempts -lt $max_attempts ]; do
+    ((attempts++))
+    
+    # Make API request
+    response=$(curl -s -w "%{http_code}" -o "${name}.json" "${base_url}/${name}")
+    status_code="$response"
 
-  # Check if the file was saved properly
-  if [ $? -eq 0 ] && [ -s "${name}.json" ]; then
-    echo "Saved ${name}.json"
-  else
-    echo "Failed to fetch $name" >> errors.txt
+    if [ "$status_code" -eq 200 ]; then
+      echo "✔️  Saved $name.json (attempt $attempts)"
+      success=true
+      break
+    else
+      echo "❌  Attempt $attempts failed for $name (Status: $status_code)"
+      sleep 2  # Wait before retrying
+    fi
+  done
+
+  # After 3 failed attempts
+  if [ "$success" = false ]; then
+    echo "Failed to fetch $name after $max_attempts attempts. Logging error."
+    echo "[$(date)] Failed to fetch $name (after $max_attempts attempts)" >> "$error_log"
     rm -f "${name}.json"
   fi
 
-  # Respect API rate limits (delay of 2 seconds)
+  # Respect API rate limits
   sleep 2
 done
