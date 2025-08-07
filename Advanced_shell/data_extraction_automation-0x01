@@ -10,9 +10,9 @@ height=$(jq -r '.height' data.json)
 weight=$(jq -r '.weight' data.json)
 type=$(jq -r '.types[].type.name' data.json | paste -sd ", ")
 
-weight=$(awk "BEGIN {printf \"%.1f\", $weight/10}")
-height=$(awk "BEGIN {printf \"%.1f\", $height/10}")
+formatted_weight=$(awk "BEGIN {printf \"%.1f\", $weight/10}")
+formatted_height=$(awk "BEGIN {printf \"%.1f\", $height/10}")
 
 name=$(echo "$name" | sed 's/^./\U&/')
 
-echo "$name is of type $type, weighs ${weight}kg, and is ${height}m tall."
+echo "$name is of type $type, weighs ${formatted_weigh}kg, and is ${formatted_height}m tall."
