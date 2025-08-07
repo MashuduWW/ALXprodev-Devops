@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# List of Pokémon
+pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+base_url="https://pokeapi.co/api/v2/pokemon"
+error_log="errors.txt"
+
+# Clear previous error log
+> "$error_log"
+
+# Function to fetch data for one Pokémon with basic retry logic
+fetch_pokemon() {
+  name=$1
+  attempts=0
+  max_attempts=3
+  success=false
+
+  while [ $attempts -lt $max_attempts ]; do
+    ((attempts++))
+    
+    echo "[$name] Attempt $attempts..."
+
+    # Fetch data and store HTTP status code
+    status=$(curl -s -w "%{http_code}" -o "${name}.json" "${base_url}/${name}")
+    
+    if [ "$status" -eq 200 ]; then
+      echo "[$name] ✅ Success (attempt $attempts)"
+      success=true
+      break
+    else
+      echo "[$name] ❌ Failed (status $status)"
+      sleep 1  # Small delay before retry
+    fi
+  done
+
+  # Final check after retries
+  if [ "$success" = false ]; then
+    echo "[$(date)] Failed to fetch $name after $max_attempts attempts" >> "$error_log"
+    rm -f "${name}.json"
+  fi
+}
+
+# Launch each request in the background
+for name in "${pokemon_list[@]}"; do
+  fetch_pokemon "$name" &
+done
+
+# Wait for all background jobs to complete
+wait
+
+echo "✅ All fetches complete."
