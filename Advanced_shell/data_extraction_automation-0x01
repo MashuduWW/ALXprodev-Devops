@@ -5,13 +5,15 @@ if [ ! -f "data.json" ]; then
   exit 1
 fi
 
-jq -r '
-  . as $poke |
-  {
-    name: $poke.name,
-    height: ($poke.height / 10),
-    weight: ($poke.weight / 10),
-    type: ($poke.types | map(.type.name) | join(", "))
-  } | 
-  "\(.name | ascii_upcase) is of type \(.type), weighs \(.weight)kg, and is \(.height)m tall."
-' data.json
+# Extract raw data using jq
+name=$(jq -r '.name' data.json)
+height=$(jq -r '.height' data.json)
+weight=$(jq -r '.weight' data.json)
+types=$(jq -r '.types[].type.name' data.json | paste -sd ", ")
+
+formatted_weight=$(awk "BEGIN {printf \"%.1f\", $weight/10}")
+formatted_height=$(awk "BEGIN {printf \"%.1f\", $height/10}")
+
+capitalized_name=$(echo "$name" | sed 's/^./\U&/')
+
+echo "$capitalized_name is of type $types, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
