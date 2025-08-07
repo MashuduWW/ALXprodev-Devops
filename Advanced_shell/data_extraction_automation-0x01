@@ -15,4 +15,4 @@ formatted_height=$(awk "BEGIN {printf \"%.1f\", $height/10}")
 
 name=$(echo "$name" | sed 's/^./\U&/')
 
-echo "$name is of type $type, weighs ${formatted_weigh}kg, and is ${formatted_height}m tall."
+echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
