@@ -1,0 +1,17 @@
+!/bin/bash
+
+if [ ! -f "data.json" ]; then
+  echo "data.json not found. Please run the API request script first."
+  exit 1
+fi
+
+jq -r '
+  . as $poke |
+  {
+    name: $poke.name,
+    height: ($poke.height / 10),
+    weight: ($poke.weight / 10),
+    type: ($poke.types | map(.type.name) | join(", "))
+  } | 
+  "\(.name | ascii_upcase) is of type \(.type), weighs \(.weight)kg, and is \(.height)m tall."
+' data.json
