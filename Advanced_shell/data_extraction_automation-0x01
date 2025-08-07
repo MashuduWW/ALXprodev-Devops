@@ -1,19 +1,18 @@
-!/bin/bash
+#!/bin/bash
 
 if [ ! -f "data.json" ]; then
   echo "data.json not found. Please run the API request script first."
   exit 1
 fi
 
-# Extract raw data using jq
 name=$(jq -r '.name' data.json)
 height=$(jq -r '.height' data.json)
 weight=$(jq -r '.weight' data.json)
-types=$(jq -r '.types[].type.name' data.json | paste -sd ", ")
+type=$(jq -r '.types[].type.name' data.json | paste -sd ", ")
 
-formatted_weight=$(awk "BEGIN {printf \"%.1f\", $weight/10}")
-formatted_height=$(awk "BEGIN {printf \"%.1f\", $height/10}")
+weight=$(awk "BEGIN {printf \"%.1f\", $weight/10}")
+height=$(awk "BEGIN {printf \"%.1f\", $height/10}")
 
-capitalized_name=$(echo "$name" | sed 's/^./\U&/')
+name=$(echo "$name" | sed 's/^./\U&/')
 
-echo "$capitalized_name is of type $types, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
+echo "$name is of type $type, weighs ${weight}kg, and is ${height}m tall."
